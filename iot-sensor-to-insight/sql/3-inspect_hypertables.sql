@@ -24,6 +24,7 @@ ORDER BY range_start;
 -- ============================================================================
 -- The actual compression ratio depends on the nature of the data. With real 
 -- data (which is often very uniform) it'll typically be 5-10x
+
 SELECT
   (SELECT COUNT(*) FROM tag_history) AS n_rows,
   pg_size_pretty(before_compression_total_bytes) AS before,

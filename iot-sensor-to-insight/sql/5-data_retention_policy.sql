@@ -1,5 +1,5 @@
 -- ============================================================================
--- ## Retention policy
+-- ## Add data retention policy
 -- ============================================================================
 -- Drop data older than 21 days automatically. The policy runs in the
 -- background, but we'll call drop_chunks() directly so you can see it

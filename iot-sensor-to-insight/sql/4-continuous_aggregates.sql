@@ -24,7 +24,6 @@ ORDER BY id, period DESC;
 -- ## JOIN Tables
 -- ============================================================================
 -- By joining multiple tables, we can get full context
-
 SELECT
     tag_meta.id,
     tag_meta.full_name,
@@ -57,12 +56,21 @@ GROUP BY tag_meta.id,period
 ORDER BY period DESC;
 
 -- ============================================================================
--- ## Step 12 — Query the continuous aggregate
+-- ## Query the continuous aggregate
 -- ============================================================================
--- Same kind of question as Step 10, but answered from the pre-aggregated
--- materialized view — typically sub-millisecond.
 SELECT *
 FROM halfday_summary
 WHERE full_name = 'mixing.reactor_01.agitator_01.speed'
   AND period >= NOW() - INTERVAL '14 DAYS'
-ORDER BY period;
+ORDER BY period DESC;
+
+-- Add some data to a new interval
+INSERT INTO tag_history (time, id, value, quality)
+VALUES (NOW()+ INTERVAL '12 HOURS' , 1, 500, 192);
+
+-- Verify that the result is updated
+SELECT *
+FROM halfday_summary
+WHERE full_name = 'mixing.reactor_01.agitator_01.speed'
+  AND period >= NOW() - INTERVAL '14 DAYS'
+ORDER BY period DESC;
