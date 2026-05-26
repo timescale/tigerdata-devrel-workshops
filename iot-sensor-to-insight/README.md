@@ -2,10 +2,6 @@
 
 A 60-minute hands-on workshop where you'll build a real IoT analytics pipeline on Tiger Cloud from scratch. You write the SQL, you run the queries, and you walk away with a working service you built yourself.
 
-- **When:** Thursday, May 28, 2026 · 12:00–1:00 PM ET
-- **Where:** Zoom (link in your registration email)
-- **Format:** Live, hands-on. You'll follow along on your own Tiger Cloud service.
-
 ## What you'll learn
 
 - **Hypertables** — turn a regular Postgres table into a time-series-optimized one
@@ -114,9 +110,9 @@ If `tiger-cli` is installed and logged in by workshop day, you'll be ready for t
 
 ## During the workshop
 
-We'll work through [`workshop.sql`](./workshop.sql) step by step. Either:
+We'll work through the files in the [`sql`](./sql) directory, step by step. Either:
 
-- **Recommended:** open `workshop.sql` locally and copy/paste each section into psql as we go
+- **Recommended:** open each `*.sql` file locally and copy/paste each section into `psql` as we go
 - **Alternative:** paste the whole file into the **Data** tab in the Tiger Cloud console
 
 If you fall behind on a step, the next one will still work — each section is self-contained.
