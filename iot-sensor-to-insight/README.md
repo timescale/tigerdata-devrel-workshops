@@ -16,7 +16,7 @@ You need three things before we start. Do these **before May 28** — workshop d
 
 ### 1. Sign up for Tiger Cloud
 
-Sign up at [console.cloud.timescale.com/signup](https://console.cloud.timescale.com/signup). You'll get **$1000 in trial credit**, which is way more than enough for this workshop and a bunch of follow-up experimentation.
+Sign up at [tsdb.co/sensor-workshop-signup](https://tsdb.co/sensor-workshop-signup). You'll get **$1000 in trial credit**, which is way more than enough for this workshop and a bunch of follow-up experimentation.
 
 ### 2. Spin up a service
 
