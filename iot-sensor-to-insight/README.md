@@ -33,9 +33,9 @@ Once it's up, copy the connection string from the service overview. It looks lik
 postgres://tsdbadmin:xxxxxxxx@xxxxxxxxxx.tsdb.cloud.timescale.com:39966/tsdb?sslmode=require
 ```
 
-### 3. Install psql (recommended)
+### 3. Install [psql](https://www.tigerdata.com/blog/how-to-install-psql-on-mac-ubuntu-debian-windows) (optional)
 
-We'll use psql during the workshop. If you can't install it, the **Data** tab in the Tiger Cloud console works too — just slower.
+You can use `psql` for the workshop. You can also use the [**Data** tab in the Tiger Cloud console](https://www.tigerdata.com/docs/build/data-management/run-queries-from-tiger-console#data-view) if you don't want to install anything.
 
 ```bash
 # macOS
