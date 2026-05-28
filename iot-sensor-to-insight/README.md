@@ -119,8 +119,8 @@ If you fall behind on a step, the next one will still work — each section is s
 
 ## Need help?
 
-- **Workshop day:** ask in the Zoom chat — Doug will be monitoring
-- **Anytime:** [docs.tigerdata.com](https://docs.tigerdata.com) or [tigerdata.com/contact](https://www.tigerdata.com/contact)
+- **Workshop day:** ask in the Zoom chat
+- **Anytime:** [docs.tigerdata.com](https://tigerdata.com/docs) or [Community Slack](https://slack.timescale.com)
 
 ## After the workshop
 
