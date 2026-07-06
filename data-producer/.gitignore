@@ -1,0 +1,10 @@
+# Secrets and generated material — never commit these
+.env
+.env.server
+broker/passwd
+broker/certs/
+letsencrypt/
+
+# Python
+__pycache__/
+*.pyc

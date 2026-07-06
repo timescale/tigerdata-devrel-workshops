@@ -1,0 +1,43 @@
+# ============================================================================
+# Workshop stack: the consumer + Grafana. The MQTT feed comes from a separate
+# broker — either the shared broker your instructor hosts, or a local one you
+# run yourself from ../data-producer.
+#
+#   cp .env.example .env       # set MQTT_* (broker) + TIGER_* (your Tiger Cloud)
+#   docker compose up --build
+#
+# Shared broker (instructor-hosted):
+#   MQTT_BROKER_HOST=broker.yourworkshop.com
+#   MQTT_BROKER_PORT=8883
+#   MQTT_TLS=true
+#   MQTT_USERNAME=attendee
+#   MQTT_PASSWORD=<shared attendee password>
+#
+# Local broker (../data-producer running via `docker compose up`):
+#   MQTT_BROKER_HOST=host.docker.internal
+#   MQTT_BROKER_PORT=1883
+# ============================================================================
+
+services:
+  consumer:
+    build: ./consumer
+    container_name: workshop-consumer
+    env_file: .env
+    # Lets MQTT_BROKER_HOST=host.docker.internal reach a broker running in
+    # ../data-producer on this same machine (works on Linux too).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: workshop-grafana
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro

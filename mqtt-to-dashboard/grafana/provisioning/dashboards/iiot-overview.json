@@ -1,0 +1,103 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["workshop", "iiot"],
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "title": "IIoT Overview — MQTT to Tiger Cloud",
+  "uid": "iiot-overview",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Temperature (°C)",
+      "datasource": { "type": "postgres", "uid": "tigercloud" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 8 }, "unit": "celsius" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "tigercloud" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT time_bucket('30 seconds', r.ts) AS time, a.uns_path AS metric, avg(r.value) AS value FROM tag_history r JOIN tag_meta a ON a.tag_id = r.tag_id WHERE a.metric = 'temperature' AND $__timeFilter(r.ts) GROUP BY time, a.uns_path ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Pressure (bar)",
+      "datasource": { "type": "postgres", "uid": "tigercloud" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 8 }, "unit": "pressurebar" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "tigercloud" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT time_bucket('30 seconds', r.ts) AS time, a.uns_path AS metric, avg(r.value) AS value FROM tag_history r JOIN tag_meta a ON a.tag_id = r.tag_id WHERE a.metric = 'pressure' AND $__timeFilter(r.ts) GROUP BY time, a.uns_path ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Current value by asset (last)",
+      "datasource": { "type": "postgres", "uid": "tigercloud" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "tigercloud" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT a.uns_path AS \"Tag\", round(last(r.value, r.ts)::numeric, 2) AS \"Value\", a.unit AS \"Unit\" FROM tag_history r JOIN tag_meta a ON a.tag_id = r.tag_id GROUP BY a.uns_path, a.unit ORDER BY a.uns_path"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Flow rate (L/min) & Motor state",
+      "datasource": { "type": "postgres", "uid": "tigercloud" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 8 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "tigercloud" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT time_bucket('30 seconds', r.ts) AS time, a.uns_path AS metric, avg(r.value) AS value FROM tag_history r JOIN tag_meta a ON a.tag_id = r.tag_id WHERE a.metric IN ('flow_rate','motor_state') AND $__timeFilter(r.ts) GROUP BY time, a.uns_path ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Total readings ingested",
+      "datasource": { "type": "postgres", "uid": "tigercloud" },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 16 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "tigercloud" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"readings\" FROM tag_history"
+        }
+      ]
+    }
+  ]
+}

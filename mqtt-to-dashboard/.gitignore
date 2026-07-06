@@ -1,0 +1,6 @@
+# Never commit your Tiger Cloud credentials
+.env
+
+# Python
+__pycache__/
+*.pyc

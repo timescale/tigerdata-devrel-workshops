@@ -7,6 +7,7 @@ Hands-on workshops from the Tiger Data Developer Relations team. Each workshop i
 | Workshop | Description | Format | Length |
 |----------|-------------|--------|--------|
 | [iot-sensor-to-insight](./iot-sensor-to-insight) | Build a real-time IoT analytics pipeline on Tiger Cloud — hypertables, columnar compression, continuous aggregates, retention. | Live virtual workshop | 60 min |
+| [mqtt-to-dashboard](./mqtt-to-dashboard) | Build a real-time IIoT pipeline from MQTT to Tiger Cloud to Grafana — ingest MQTT topics into a hypertable, model with metadata, `time_bucket()`/`last()`/continuous aggregates, live dashboard. | Live virtual workshop | 60 min |
 
 ## Repo conventions
 

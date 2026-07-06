@@ -1,0 +1,20 @@
+# Wires Grafana to your Tiger Cloud service using the TIGER_* values from .env.
+# Grafana treats Tiger Cloud as a normal PostgreSQL datasource.
+apiVersion: 1
+
+datasources:
+  - name: TigerCloud
+    uid: tigercloud
+    type: postgres
+    access: proxy
+    url: ${TIGER_HOST}:${TIGER_PORT}
+    user: ${TIGER_USER}
+    secureJsonData:
+      password: ${TIGER_PASSWORD}
+    jsonData:
+      database: ${TIGER_DATABASE}
+      sslmode: require
+      postgresVersion: 1600
+      timescaledb: true
+    isDefault: true
+    editable: true

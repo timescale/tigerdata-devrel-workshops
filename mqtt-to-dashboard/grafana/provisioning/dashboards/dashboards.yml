@@ -1,0 +1,12 @@
+# Loads any dashboard JSON in this folder on startup.
+apiVersion: 1
+
+providers:
+  - name: workshop
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
