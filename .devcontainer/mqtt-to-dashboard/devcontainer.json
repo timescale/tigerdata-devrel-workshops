@@ -1,7 +1,7 @@
 // Save this as .devcontainer/devcontainer.json in the workshop repo.
 // Attendees just click "Open in GitHub Codespaces" on the repo — no local install needed.
 {
-  "name": "tigerdata-workshop",
+  "name": "mqtt-to-dashboard-workshop",
 
   // Base image with Python already baked in. Swap the version if the workshop needs a specific one.
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
