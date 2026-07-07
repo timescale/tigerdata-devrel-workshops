@@ -16,10 +16,7 @@
     // Git is already in the base image, but this pins a recent version + nice defaults
     "ghcr.io/devcontainers/features/git:1": {
       "version": "latest"
-    },
-
-    // Postgres client tools (psql) for anyone poking at the DB from the terminal
-    "ghcr.io/devcontainers-contrib/features/postgresql-client:1": {}
+    }
   },
 
   "customizations": {
@@ -45,8 +42,12 @@
     }
   },
 
-  // Runs once when the codespace is created — good place to pip install workshop deps
-  "postCreateCommand": "pip install --user -r requirements.txt || true",
+  // Installs psql directly via apt instead of relying on the
+  // ghcr.io/devcontainers-contrib/features/postgresql-client feature, which
+  // failed to resolve during container creation (community feature registry
+  // issue, not something in our control). Also installs workshop deps once
+  // requirements.txt exists.
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y postgresql-client && pip install --user -r requirements.txt || true",
 
   // Forward whatever port your demo Postgres/TimescaleDB container listens on
   "forwardPorts": [5432],
