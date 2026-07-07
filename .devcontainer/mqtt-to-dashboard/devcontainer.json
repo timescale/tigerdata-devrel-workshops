@@ -1,5 +1,7 @@
-// Save this as .devcontainer/devcontainer.json in the workshop repo.
-// Attendees just click "Open in GitHub Codespaces" on the repo — no local install needed.
+// This is the devcontainer config for the mqtt-to-dashboard workshop.
+// Lives at .devcontainer/mqtt-to-dashboard/devcontainer.json — this repo
+// hosts multiple workshops, so each one gets its own subfolder under .devcontainer/.
+// Attendees connect via the deep link in this workshop's README (skips the config picker).
 {
   "name": "mqtt-to-dashboard-workshop",
 
