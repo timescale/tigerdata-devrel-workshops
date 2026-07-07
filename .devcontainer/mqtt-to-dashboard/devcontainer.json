@@ -11,7 +11,9 @@
   "features": {
     // Gives you real Docker-in-Docker inside the codespace — needed if the workshop
     // spins up a Postgres/TimescaleDB container, a broker, etc.
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false
+    },
 
     // Git is already in the base image, but this pins a recent version + nice defaults
     "ghcr.io/devcontainers/features/git:1": {
