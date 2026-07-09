@@ -25,6 +25,8 @@ class TigerCloudWriter:
         self._conn = self._connect()
         # Tags we've already ensured exist in tag_meta (avoids re-upserting).
         self._known_tags: set[str] = set()
+        # So we log "tables not found" once, not on every retry.
+        self._warned_no_tables = False
 
     def _connect(self) -> psycopg.Connection:
         while True:
@@ -52,8 +54,13 @@ class TigerCloudWriter:
             )
         self._known_tags.update(new.keys())
 
-    def write(self, readings: list[Reading]) -> None:
-        """Insert a batch of readings. Returns silently on success."""
+    def write(self, readings: list[Reading]) -> bool:
+        """
+        Insert a batch of readings. Returns True on success; False if it couldn't
+        (the caller keeps the batch and retries), so nothing is lost.
+        """
+        if not readings:
+            return True
         try:
             self._ensure_assets(readings)
             with self._conn.cursor() as cur:
@@ -62,16 +69,20 @@ class TigerCloudWriter:
                     [(r.ts, r.tag_id, r.value, r.quality) for r in readings],
                 )
             print(f"[consumer] wrote {len(readings)} readings to Tiger Cloud", flush=True)
+            self._warned_no_tables = False
+            return True
         except errors.UndefinedTable:
-            print(
-                "[consumer] tables not found — run sql/1-create_tables.sql, "
-                "then I'll start writing. (buffering...)",
-                flush=True,
-            )
+            if not self._warned_no_tables:
+                print(
+                    "[consumer] tables not found — run sql/1-create_tables.sql, "
+                    "then I'll start writing. (buffering...)",
+                    flush=True,
+                )
+                self._warned_no_tables = True
             # Clear the known-tags cache so assets get re-registered post-create.
             self._known_tags.clear()
-            raise
+            return False
         except psycopg.OperationalError:
             print("[consumer] lost connection to Tiger Cloud; reconnecting...", flush=True)
             self._conn = self._connect()
-            raise
+            return False

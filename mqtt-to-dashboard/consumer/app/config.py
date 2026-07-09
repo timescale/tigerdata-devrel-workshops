@@ -8,8 +8,9 @@ MQTT_SUBSCRIBE = os.getenv("MQTT_SUBSCRIBE", "workshop/#")
 MQTT_TOPIC_BASE = os.getenv("MQTT_TOPIC_BASE", "workshop")
 
 # Auth + TLS. Off for the all-local stack; set these to connect to a hardened
-# shared broker (see deploy/). MQTT_CA_CERT is only needed for a self-signed
-# cert — a Let's Encrypt cert is trusted by the system store, so leave it blank.
+# shared broker (see ../data-producer). MQTT_CA_CERT is only needed for a
+# self-signed cert — a Let's Encrypt cert is trusted by the system store, so
+# leave it blank.
 MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 MQTT_TLS = os.getenv("MQTT_TLS", "false").lower() in ("1", "true", "yes")

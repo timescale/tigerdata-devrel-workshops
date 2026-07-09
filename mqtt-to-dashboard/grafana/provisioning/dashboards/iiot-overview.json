@@ -67,10 +67,10 @@
     {
       "id": 4,
       "type": "timeseries",
-      "title": "Flow rate (L/min) & Motor state",
+      "title": "Flow rate (L/min)",
       "datasource": { "type": "postgres", "uid": "tigercloud" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 8 } }, "overrides": [] },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 8 }, "unit": "flowlpm" }, "overrides": [] },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
         {
@@ -78,7 +78,25 @@
           "datasource": { "type": "postgres", "uid": "tigercloud" },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT time_bucket('30 seconds', r.ts) AS time, a.uns_path AS metric, avg(r.value) AS value FROM tag_history r JOIN tag_meta a ON a.tag_id = r.tag_id WHERE a.metric IN ('flow_rate','motor_state') AND $__timeFilter(r.ts) GROUP BY time, a.uns_path ORDER BY time"
+          "rawSql": "SELECT time_bucket('30 seconds', r.ts) AS time, a.uns_path AS metric, avg(r.value) AS value FROM tag_history r JOIN tag_meta a ON a.tag_id = r.tag_id WHERE a.metric = 'flow_rate' AND $__timeFilter(r.ts) GROUP BY time, a.uns_path ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "state-timeline",
+      "title": "Motor state",
+      "datasource": { "type": "postgres", "uid": "tigercloud" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 80, "lineWidth": 0 }, "mappings": [ { "type": "value", "options": { "0": { "text": "Off", "color": "red", "index": 0 }, "1": { "text": "On", "color": "green", "index": 1 } } } ] }, "overrides": [] },
+      "options": { "showValue": "never", "mergeValues": true, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "tigercloud" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT time_bucket('30 seconds', r.ts) AS time, a.uns_path AS metric, max(r.value) AS value FROM tag_history r JOIN tag_meta a ON a.tag_id = r.tag_id WHERE a.metric = 'motor_state' AND $__timeFilter(r.ts) GROUP BY time, a.uns_path ORDER BY time"
         }
       ]
     },
@@ -87,7 +105,7 @@
       "type": "stat",
       "title": "Total readings ingested",
       "datasource": { "type": "postgres", "uid": "tigercloud" },
-      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 16 },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 22 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
       "targets": [
         {

@@ -33,7 +33,8 @@ class Reading:
 def parse(topic: str, payload: str) -> Reading | None:
     """Turn one MQTT message into a Reading, or None if it's malformed."""
     try:
-        tag_id, ts, value, quality = payload.split(",")
+        tag_id, ts, value_s, quality_s = payload.split(",")
+        value, quality = float(value_s), int(quality_s)
     except ValueError:
         print(f"[consumer] skipping malformed payload: {payload!r}", flush=True)
         return None
@@ -48,25 +49,41 @@ def parse(topic: str, payload: str) -> Reading | None:
     return Reading(
         ts=ts,
         tag_id=tag_id,
-        value=float(value),
-        quality=int(quality),
+        value=value,
+        quality=quality,
         uns_path=uns_path,
         asset=asset,
         metric=metric,
     )
 
 
-def start(on_reading) -> mqtt.Client:
-    """Connect, subscribe, and call on_reading(Reading) for every message."""
+def start(writer) -> None:
+    """
+    Connect, subscribe, and batch-insert readings via `writer` until killed.
+
+    paho delivers every message on a single background thread, so we can buffer
+    and flush right here in the callback — no extra threads or locks. We flush
+    when the buffer hits BATCH_SIZE or FLUSH_SECONDS have passed, whichever comes
+    first. `writer.write()` returns True on success; on failure (e.g. tables not
+    created yet) we keep the batch and retry on the next flush, so nothing is lost.
+    """
+    buffer: list[Reading] = []
+    last_flush = time.monotonic()
 
     def _on_connect(client, userdata, flags, reason_code, properties):
         print(f"[consumer] connected to broker, subscribing to {config.MQTT_SUBSCRIBE}", flush=True)
         client.subscribe(config.MQTT_SUBSCRIBE)
 
     def _on_message(client, userdata, msg):
+        nonlocal last_flush
         reading = parse(msg.topic, msg.payload.decode())
         if reading is not None:
-            on_reading(reading)
+            buffer.append(reading)
+        now = time.monotonic()
+        if len(buffer) >= config.BATCH_SIZE or (buffer and now - last_flush >= config.FLUSH_SECONDS):
+            if writer.write(buffer):
+                buffer.clear()
+            last_flush = now
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = _on_connect
@@ -85,5 +102,4 @@ def start(on_reading) -> mqtt.Client:
             print(f"[consumer] broker not ready ({exc}); retrying in 2s...", flush=True)
             time.sleep(2)
 
-    client.loop_start()
-    return client
+    client.loop_forever()  # blocks; handles reconnects automatically

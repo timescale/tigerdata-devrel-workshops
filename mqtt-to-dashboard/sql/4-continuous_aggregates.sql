@@ -53,4 +53,4 @@ WHERE a.metric = 'temperature'
 ORDER BY m.bucket DESC, a.uns_path;
 
 -- Tip: point the Grafana temperature/pressure panels at tag_history_1m instead of
--- the raw readings table once this view exists — same data, faster dashboards.
+-- the raw tag_history table once this view exists — same data, faster dashboards.
