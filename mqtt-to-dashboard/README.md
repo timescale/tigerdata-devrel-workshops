@@ -2,7 +2,7 @@
 
 A 60-minute hands-on workshop where you build a working industrial IoT pipeline end to end: **MQTT → Tiger Cloud → Grafana**. A broker streams live sensor readings, you ingest them into a TimescaleDB hypertable on Tiger Cloud, model them alongside equipment metadata, write fast time-series queries, and watch it all light up a live Grafana dashboard.
 
-You run the consumer + Grafana locally in Docker. The MQTT feed comes from a separate project ([`../data-producer`](../data-producer)) — either a shared broker your instructor hosts, or one you run yourself. You bring one thing: a free Tiger Cloud service.
+Your workshop Codespace already has Python, Grafana, and `psql` installed and ready to go — no Docker required for this workshop. The MQTT feed comes from a separate project ([`../data-producer`](../data-producer)) — either a shared broker your instructor hosts, or one you run yourself. You bring one thing: a free Tiger Cloud service.
 
 ## What you'll learn
 
@@ -14,7 +14,7 @@ You run the consumer + Grafana locally in Docker. The MQTT feed comes from a sep
 ## Architecture
 
 ```text
-  ../data-producer                    this project (Docker, your laptop)
+  ../data-producer                    this project (native, your Codespace)
   ┌──────────────────┐               ┌──────────────────────┐        ┌─────────────────────┐
   │ producer ─▶ MQTT │──── MQTT ────▶│ consumer      Grafana │──SQL──▶│  Tiger Cloud        │
   │            broker│               │    │            │      │        │  (hosted TimescaleDB)│
@@ -29,6 +29,9 @@ You work in the **consumer**, the **`sql/`** files, and **Grafana**. The MQTT fe
 
 - **Shared broker (instructor-hosted):** the instructor runs the broker + producer on a public VM; everyone subscribes to the same live feed over TLS. Use the `MQTT_*` values they give you. *(This is the default for a live workshop.)*
 - **Local broker (self-paced):** run the feed yourself from [`../data-producer`](../data-producer) (`docker compose up`), and point this project's consumer at `host.docker.internal:1883`.
+  <!-- TODO(doug): now that the consumer runs natively in the Codespace instead of in Docker,
+       double check whether this should be `localhost:1883` instead — host.docker.internal
+       was needed to reach a container from another container; that hop no longer exists here. -->
 
 Either way, you only run the consumer + Grafana here.
 
@@ -36,7 +39,7 @@ Either way, you only run the consumer + Grafana here.
 
 ## Before the workshop — setup checklist
 
-Four steps. Do them **before workshop day** — it's a bad time to debug DNS or a Docker install.
+Four steps. Do them **before workshop day** — it's a bad time to debug DNS or a stuck Codespace build.
 
 ### 1. Sign up for Tiger Cloud
 
@@ -57,13 +60,13 @@ From the service's **Connection info** panel, note the **host, port, database, u
 postgres://tsdbadmin:PASSWORD@HOST:PORT/tsdb?sslmode=require
 ```
 
-### 3. Install Docker Desktop
+### 3. Launch the workshop Codespace
 
-This workshop runs a local stack, so you need Docker. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and confirm it works:
+Open your Codespace with everything pre-installed (Python, Grafana, `psql`) via the deep link below — it skips the usual devcontainer picker:
 
-```bash
-docker compose version
-```
+[**codespaces.new/timescale/tigerdata-devrel-workshops?devcontainer_path=.devcontainer/mqtt-to-dashboard/devcontainer.json**](https://codespaces.new/timescale/tigerdata-devrel-workshops?devcontainer_path=.devcontainer/mqtt-to-dashboard/devcontainer.json)
+
+First boot takes a few minutes while the container installs Grafana and the consumer's Python dependencies. Nothing to run yet — just confirm it finishes without errors.
 
 ### 4. Test your Tiger Cloud connection
 
@@ -98,13 +101,25 @@ cd ../data-producer && cp .env.example .env && docker compose up --build
 
 Skip this if you're using a shared broker.
 
-**3. Start the consumer + Grafana:**
+**3. Point Grafana at your Tiger Cloud service:**
 
 ```bash
-docker compose up --build
+bash ../.devcontainer/mqtt-to-dashboard/scripts/reload-grafana-env.sh
 ```
 
-The consumer connects to the broker and will print a reminder that the tables don't exist yet — that's expected; you create them next.
+Grafana is already running in the background — this loads your `.env` values into it. Re-run this any time you change `.env`.
+
+**4. Start the consumer:**
+
+```bash
+set -a
+source .env
+set +a
+cd consumer
+python -m app.main
+```
+
+Leave this running in its own terminal. It connects to the broker and will print a reminder that the tables don't exist yet — that's expected; you create them next.
 
 ---
 
@@ -120,13 +135,9 @@ We work through the [`sql`](./sql) files in order. Run them in the Tiger Cloud c
 | [`sql/4-continuous_aggregates.sql`](./sql/4-continuous_aggregates.sql) | Build a self-updating 1-minute rollup with a refresh policy. |
 | [`sql/5-bonus_compression.sql`](./sql/5-bonus_compression.sql) | *(Optional)* columnar compression + retention. |
 
-Once file 1 runs, watch the consumer catch up:
+Once file 1 runs, watch the consumer's terminal catch up — it logs a line like `wrote 50 readings to Tiger Cloud` each time it flushes a batch.
 
-```bash
-docker compose logs -f consumer   # "wrote 50 readings to Tiger Cloud"
-```
-
-Then open Grafana at **http://localhost:3000** (login `admin` / the password in your `.env`). The **IIoT Overview** dashboard is pre-loaded and refreshes every 5 seconds — you'll see temperature, pressure, flow, and live current values fill in as data flows.
+Then open Grafana at **http://localhost:3000**. It runs with anonymous Viewer access by default, so the **IIoT Overview** dashboard is visible with no login — it refreshes every 5 seconds and you'll see temperature, pressure, flow, and live current values fill in as data flows. If you need to log in to edit panels, use `admin` / the value you set in `GRAFANA_ADMIN_PASSWORD` (or `admin`/`admin` if you haven't set one) — after changing `GRAFANA_ADMIN_PASSWORD` in `.env`, re-run `reload-grafana-env.sh` to apply it.
 
 ## How the pieces fit together
 
@@ -142,9 +153,10 @@ Then open Grafana at **http://localhost:3000** (login `admin` / the password in 
 ### Troubleshooting
 
 - **Consumer logs "tables not found"** — run `sql/1-create_tables.sql`; it'll start writing within a few seconds.
-- **Consumer can't reach Tiger Cloud** — double-check the `TIGER_*` values in `.env`; the host must be reachable and `sslmode=require` is expected.
+- **Consumer can't reach Tiger Cloud** — double-check the `TIGER_*` values in `.env`; the host must be reachable and `sslmode=require` is expected. Make sure you `source .env` in the terminal you're running `python -m app.main` from, since `config.py` reads these from the process environment.
 - **Consumer can't reach the broker** — for the shared broker, re-check `MQTT_BROKER_HOST/PORT/TLS/USERNAME/PASSWORD`; for a local feed, make sure `../data-producer` is up and `MQTT_BROKER_HOST=host.docker.internal`.
-- **Grafana panels are empty** — confirm the consumer is writing (`docker compose logs consumer`) and that your dashboard time range covers "now".
+- **Grafana panels are empty** — confirm the consumer's terminal is showing writes, that your dashboard time range covers "now", and that you ran `reload-grafana-env.sh` after setting `.env` (otherwise the TigerCloud datasource has no connection details).
+- **Grafana datasource fails "Save & test"** — you likely edited `.env` without re-running `reload-grafana-env.sh`; run it, then retest. You can also check `sudo service grafana-server status`.
 
 ## After the workshop
 

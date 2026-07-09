@@ -1,0 +1,71 @@
+// This is the devcontainer config for the mqtt-to-dashboard workshop.
+// Lives at .devcontainer/mqtt-to-dashboard/devcontainer.json — this repo
+// hosts multiple workshops, so each one gets its own subfolder under .devcontainer/.
+// Attendees connect via the deep link in this workshop's README (skips the config picker).
+//
+// Everything the workshop needs (Python deps, Grafana, psql) runs natively in this
+// one container — no Docker-in-Docker, no docker-compose. Tiger Cloud (the hosted
+// TimescaleDB service) is remote, so there's nothing local to run for the database.
+{
+  "name": "mqtt-to-dashboard-workshop",
+
+  // Base image with Python already baked in. Swap the version if the workshop needs a specific one.
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+
+  "features": {
+    // Git is already in the base image, but this pins a recent version + nice defaults.
+    // NOTE: no docker-in-docker feature — nothing in this workshop runs in nested
+    // Docker anymore (consumer + Grafana both run natively in this container).
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+
+        // SQL syntax highlighting + a lightweight query runner
+        // (mssql extension works fine for generic SQL highlighting, not just SQL Server)
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+
+        // Quality-of-life, not required but nice for a workshop
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": false
+      }
+    }
+  },
+
+  // One-time, on container create: psql (apt, same approach as the flaky-feature
+  // fix below), Grafana OSS (apt, native process — not Docker), consumer deps,
+  // and wiring Grafana's provisioning to this repo's grafana/provisioning/. See
+  // scripts/post-create.sh — installs psql directly via apt instead of relying on
+  // the ghcr.io/devcontainers-contrib/features/postgresql-client feature, which
+  // failed to resolve during container creation (community feature registry
+  // issue, not something in our control).
+  "postCreateCommand": "bash .devcontainer/mqtt-to-dashboard/scripts/post-create.sh",
+
+  // Every container start (including the first, right after postCreateCommand):
+  // starts Grafana, loading TIGER_*/GRAFANA_* from mqtt-to-dashboard/.env into its
+  // process env first, if that file exists yet. See scripts/reload-grafana-env.sh.
+  "postStartCommand": "bash .devcontainer/mqtt-to-dashboard/scripts/reload-grafana-env.sh",
+
+  // 3000 = Grafana. No 5432 — no local Postgres; Tiger Cloud is remote.
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Grafana", "onAutoForward": "notify" }
+  },
+
+  // Keep the codespace lean — workshop attendees don't need a beefy machine
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb"
+  }
+}
