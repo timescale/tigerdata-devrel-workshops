@@ -50,7 +50,7 @@
   // the ghcr.io/devcontainers-contrib/features/postgresql-client feature, which
   // failed to resolve during container creation (community feature registry
   // issue, not something in our control).
-  "postCreateCommand": "bash .devcontainer/mqtt-to-dashboard/scripts/post-create.sh",
+  "postCreateCommand": "apt-get update && apt-get install -y mosquitto-clients && bash .devcontainer/mqtt-to-dashboard/scripts/post-create.sh",
 
   // Every container start (including the first, right after postCreateCommand):
   // starts Grafana, loading TIGER_*/GRAFANA_* from mqtt-to-dashboard/.env into its
