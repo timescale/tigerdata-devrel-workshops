@@ -12,9 +12,9 @@ set -euo pipefail
 
 WORKSHOP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/mqtt-to-dashboard"
 
-echo "==> Installing psql"
+echo "==> Installing psql and mosquitto-clients"
 sudo apt-get update
-sudo apt-get install -y postgresql-client
+sudo apt-get install -y postgresql-client mosquitto-clients
 
 echo "==> Adding Grafana's official apt repo and installing grafana"
 sudo apt-get install -y apt-transport-https wget gnupg

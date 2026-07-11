@@ -43,14 +43,13 @@
     }
   },
 
-  // One-time, on container create: psql (apt, same approach as the flaky-feature
-  // fix below), Grafana OSS (apt, native process — not Docker), consumer deps,
-  // and wiring Grafana's provisioning to this repo's grafana/provisioning/. See
-  // scripts/post-create.sh — installs psql directly via apt instead of relying on
-  // the ghcr.io/devcontainers-contrib/features/postgresql-client feature, which
-  // failed to resolve during container creation (community feature registry
-  // issue, not something in our control).
-  "postCreateCommand": "apt-get update && apt-get install -y mosquitto-clients && bash .devcontainer/mqtt-to-dashboard/scripts/post-create.sh",
+  // One-time, on container create: psql, mosquitto-clients, Grafana OSS (all apt,
+  // native processes — not Docker), consumer deps, and wiring Grafana's provisioning
+  // to this repo's grafana/provisioning/. All apt operations are consolidated in
+  // scripts/post-create.sh with proper error handling via set -euo pipefail to avoid
+  // race conditions or silent failures from split apt-get commands. See scripts/post-create.sh
+  // — installs tools directly via apt instead of relying on flaky community features.
+  "postCreateCommand": "bash .devcontainer/mqtt-to-dashboard/scripts/post-create.sh",
 
   // Every container start (including the first, right after postCreateCommand):
   // starts Grafana, loading TIGER_*/GRAFANA_* from mqtt-to-dashboard/.env into its
