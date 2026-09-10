@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#
+# Run SQL through the Tiger CLI and print the results with EXPLAIN plan
+# indentation intact.
+#
+#   scripts/explain fbfd-original -f sql/2-baseline.sql
+#   scripts/explain fbfd-fork -c "EXPLAIN ANALYZE SELECT ..."
+#
+# Why this exists: `tiger db query`'s table renderer trims leading whitespace
+# from cell values. For most results that's invisible, but an EXPLAIN plan IS
+# its indentation — without it every node sits flush left and you cannot see
+# what is nested inside what. The JSON output preserves the whitespace, so this
+# asks for JSON and unwraps it.
+#
+# Plain `tiger db query` is fine for anything that isn't an EXPLAIN.
+
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+name="${1:-}"
+if [ -z "$name" ]; then
+    echo "usage: scripts/explain <service-name> [-c SQL | -f FILE]" >&2
+    exit 64
+fi
+shift
+
+tiger db query "$("$here/sid" "$name")" "$@" -o json \
+  | jq -r '.result_sets[] | (.rows[]? | .[]), ""'

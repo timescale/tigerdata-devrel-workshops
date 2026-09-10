@@ -46,6 +46,15 @@ from that moment on the original is off limits.
 
 6. **Do not touch the CSV in `data/`.** It is the source of truth for re-runs.
 
+## Two things that will bite you
+
+- `tiger db query` runs a multi-statement call inside one implicit transaction, and
+  `refresh_continuous_aggregate()` cannot run in a transaction block. Sending the
+  `CREATE MATERIALIZED VIEW` and the `CALL` together fails and rolls **both** back, so
+  the view silently won't exist. Send them as two separate calls.
+- Its table renderer trims leading whitespace, which flattens `EXPLAIN` plans. Use
+  `scripts/explain <service> -c "..."` when you need to read a plan's structure.
+
 ## About this database
 
 `service_requests` holds one million NYC 311 service requests from 2024. It was

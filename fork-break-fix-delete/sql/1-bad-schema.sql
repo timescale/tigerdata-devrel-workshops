@@ -4,7 +4,7 @@
 --
 -- Run this against fbfd-original BEFORE the workshop:
 --
---   psql "$(scripts/conn fbfd-original)" \
+--   tiger db query "$(scripts/sid fbfd-original)" \
 --        -f sql/1-bad-schema.sql
 --
 -- Everything wrong with this table is wrong on purpose. It is not a strawman —
@@ -40,6 +40,7 @@ CREATE TABLE service_requests (
 -- ============================================================================
 -- ## Confirm the damage
 -- ============================================================================
-
-\d service_requests
+-- Ten text columns, no keys, no indexes. The Tiger CLI will show you:
+--
+--   tiger db schema "$(scripts/sid fbfd-original)"
 

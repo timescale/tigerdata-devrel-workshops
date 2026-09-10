@@ -4,17 +4,16 @@
 --
 -- Run this against fbfd-original:
 --
---   psql "$(scripts/conn fbfd-original)" \
+--   tiger db query "$(scripts/sid fbfd-original)" \
 --        -f sql/2-baseline.sql
 --
 -- Three queries, three different shapes of dashboard panel. Write all three
--- timings down. You will run these exact queries again in sql/3-verify-fix.sql,
+-- timings down -- they come from the "Execution Time" line at the bottom of each
+-- EXPLAIN plan. You will run these exact queries again in sql/3-verify-fix.sql,
 -- and the comparison is only honest if the query text is byte-for-byte identical.
 --
 -- Safe to re-run. Read-only.
 -- ============================================================================
-
-\timing on
 
 SELECT count(*) AS total_rows FROM service_requests;
 
@@ -83,8 +82,6 @@ FROM service_requests
 GROUP BY 1, 2
 ORDER BY complaints DESC
 LIMIT 20;
-
-\timing off
 
 -- ============================================================================
 -- ## Optional: prove you cannot index your way out

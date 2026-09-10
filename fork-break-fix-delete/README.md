@@ -169,15 +169,30 @@ tiger db connection-string "$(scripts/sid fbfd-original)"
 ```
 
 Rather than have you paste ten random characters into fifteen commands, this workshop
-ships two small helpers that do that name-to-ID lookup for you:
+ships three small helpers:
 
 ```bash
-scripts/sid  fbfd-original          # your service's ID
-scripts/conn fbfd-original          # the full connection string, password included
-scripts/conn fbfd-original --read-only
+scripts/sid     fbfd-original       # your service's ID
+scripts/conn    fbfd-original       # the full connection string, password included
+scripts/explain fbfd-original -f sql/2-baseline.sql
 ```
 
-Everything below uses them. They're a few lines of `jq` each — read them if you want.
+`tiger db query` is how you run SQL — it talks to the service directly and doesn't need
+psql installed at all:
+
+```bash
+tiger db query "$(scripts/sid fbfd-original)" -c "SELECT count(*) FROM service_requests"
+tiger db query "$(scripts/sid fbfd-original)" -f sql/1-bad-schema.sql
+```
+
+`scripts/explain` is the same thing for anything containing an `EXPLAIN`. The table
+renderer trims leading whitespace from results, which is invisible for normal rows but
+flattens an EXPLAIN plan so every node sits at the left margin and you can't see what's
+nested in what. The helper asks for `-o json` instead and unwraps it, which keeps the
+indentation.
+
+We still use `psql` for exactly one thing — the ingest — because loading a local CSV needs
+psql's `\copy`, and `tiger db query` has no way to stream a file from your machine.
 
 > **On a paid service?** It all works. Two differences: forking takes about 2.5 minutes
 > instead of 30 seconds (restore-and-replay rather than copy-on-write), and the baseline
@@ -188,7 +203,7 @@ Everything below uses them. They're a few lines of `jq` each — read them if yo
 ### 7. Create the bad schema
 
 ```bash
-psql "$(scripts/conn fbfd-original)" -f sql/1-bad-schema.sql
+tiger db query "$(scripts/sid fbfd-original)" -f sql/1-bad-schema.sql
 ```
 
 Ten columns, all `text`. No keys, no indexes, no hypertable. It's meant to hurt.
@@ -205,8 +220,9 @@ This is the first thing you'll ask an agent to do. Start it (`claude`, `codex`, 
 > table on the Tiger Cloud service named fbfd-original. The CSV has a header row
 > and its columns are already in the same order as the table.
 >
-> Use psql's \copy so the file is read from this machine. Get the connection
-> string by running scripts/conn fbfd-original — don't ask me for credentials.
+> Use psql's \copy so the file is read from this machine — tiger db query
+> can't stream a local file. Get the connection string by running
+> scripts/conn fbfd-original; don't ask me for credentials.
 >
 > When you're done, tell me the row count and the earliest and latest created_date.
 > ```
@@ -216,7 +232,7 @@ It should come back with 1,000,000 rows spanning January to late April 2024.
 ### 9. Confirm you're ready
 
 ```bash
-psql "$(scripts/conn fbfd-original)" -c "SELECT count(*) FROM service_requests;"
+tiger db query "$(scripts/sid fbfd-original)" -c "SELECT count(*) FROM service_requests"
 ```
 
 One million rows. The upload takes about 15 seconds. **If you don't see that, fix it before
@@ -249,14 +265,15 @@ of the next.
 | `AGENTS.md` | The guardrail your agent reads. You'll edit it in step 3. | — |
 | `.claude/settings.json` | Permission rules — the fence, as opposed to the sign | — |
 | `scripts/sid` | Service name → service ID | — |
-| `scripts/conn` | Service name → connection string | — |
+| `scripts/conn` | Service name → connection string (only needed for the `\copy` ingest) | — |
+| `scripts/explain` | `tiger db query` with EXPLAIN indentation intact | — |
 
 ---
 
 ### Step 1 — Break: measure how bad it is
 
 ```bash
-psql "$(scripts/conn fbfd-original)" -f sql/2-baseline.sql
+scripts/explain fbfd-original -f sql/2-baseline.sql
 ```
 
 Write all three timings down. On a free-tier service, measured on 1,000,000 rows:
@@ -382,18 +399,22 @@ failure mode whether it's touching your database or your test suite.
 On the fork:
 
 ```bash
-psql "$(scripts/conn fbfd-fork)" -f sql/3-verify-fix.sql
+scripts/explain fbfd-fork -f sql/3-verify-fix.sql
 ```
 
 Q1, Q2 and Q3 are byte-for-byte the same queries you ran in step 1. Here's what we measured
 on a free-tier service, before and after:
 
+**Run it twice.** The first query against a brand-new fork reads from cold storage — we
+measured Q1 at 87 ms on the first run and 5 ms on the second. The second run is the honest
+number.
+
 | Query | Before | After | |
 |-------|--------|-------|---|
-| Q1 — one day of complaints | 2,909 ms | **6.3 ms** | **461x** |
-| Q2 — median time to close | 2,949 ms | **15.0 ms** | **197x** |
-| Q3 — daily counts, everything | 3,473 ms | 1,768 ms | **2.0x** |
-| Q4 — same as Q3, via the continuous aggregate | — | **75.6 ms** | 46x vs Q3 before |
+| Q1 — one day of complaints | ~2,900 ms | **~5 ms** | **~550x** |
+| Q2 — median time to close | ~3,000 ms | **~90 ms** | **~33x** |
+| Q3 — daily counts, everything | ~3,700 ms | ~1,800 ms | **~2x** |
+| Q4 — same as Q3, via the continuous aggregate | — | **~110 ms** | ~33x vs Q3 before |
 
 **Then look at Q3 and notice it barely moved.** That is the most useful result in the whole
 workshop. Correct types, a hypertable, and a well-chosen index all make queries faster by
@@ -409,7 +430,7 @@ you let an agent make it on your behalf.
 Then on the original:
 
 ```bash
-psql "$(scripts/conn fbfd-original)" -f sql/4-compare-original.sql
+tiger db query "$(scripts/sid fbfd-original)" -f sql/4-compare-original.sql
 ```
 
 Still all `text`. Still not a hypertable. Still no indexes. Still a million rows. Your agent
@@ -449,6 +470,12 @@ nothing about this workflow depends on the agent being careful.
 
    Reads work. Writes and DDL don't. This is the one to reach for when an agent needs to
    understand production but has no business changing it.
+
+   One caveat we hit while building this: a **fork of a free service currently refuses
+   read-only connections outright** — `FATAL: cannot disable read-only mode`. Read-only
+   works on the original, which is where you'd actually want it. It's also why the
+   "what changed?" section of `sql/3-verify-fix.sql` asks in SQL rather than using
+   `tiger db schema`, which always connects read-only.
 3. **Permission rules.** `.claude/settings.json` in this folder denies
    `tiger service delete`, `stop`, and `update-password`. The agent doesn't get to make
    lifecycle decisions. This is a fence — it's checked before the command runs.
@@ -503,6 +530,23 @@ A service has to be `Running` or `Paused` to be forked, never `In progress`. Wai
 **The fork is taking 15 minutes**
 You're on a paid service, which uses restore-and-replay rather than copy-on-write. Use
 `--last-snapshot` instead of `--now` — it's the fast path.
+
+**`refresh_continuous_aggregate() cannot run inside a transaction block`**
+`tiger db query` wraps a multi-statement call in one implicit transaction, and refreshing a
+continuous aggregate can't happen inside one. The whole batch rolls back, so the view
+silently doesn't exist afterwards. Split it into two calls: one to `CREATE MATERIALIZED
+VIEW ... WITH NO DATA`, a second to `CALL refresh_continuous_aggregate(...)`. Worth telling
+your agent up front — it's in `AGENTS.md`.
+
+**`tiger db schema` fails on the fork with `cannot disable read-only mode`**
+Known: a fork of a free service refuses read-only connections, and `tiger db schema` always
+connects read-only. Use it against `fbfd-original`, and use the SQL introspection queries at
+the bottom of `sql/3-verify-fix.sql` for the fork. Ordinary read-write queries against the
+fork are unaffected.
+
+**Your EXPLAIN plan is flat, with every node at the left margin**
+You ran it through `tiger db query` directly. Its table renderer trims leading whitespace,
+which destroys the plan's nesting. Use `scripts/explain` instead.
 
 **Q3 didn't get faster**
 Expected. See step 5 — Q3 has to touch every row, so partitioning can't help it. That's

@@ -4,7 +4,7 @@
 --
 -- Run this against fbfd-FORK, after your agent has finished:
 --
---   psql "$(scripts/conn fbfd-fork)" \
+--   tiger db query "$(scripts/sid fbfd-fork)" \
 --        -f sql/3-verify-fix.sql
 --
 -- Q1, Q2 and Q3 below are copied verbatim from sql/2-baseline.sql. Do not
@@ -13,8 +13,6 @@
 --
 -- Safe to re-run. Read-only.
 -- ============================================================================
-
-\timing on
 
 SELECT count(*) AS total_rows FROM service_requests;
 
@@ -100,25 +98,31 @@ GROUP BY 1, 2
 ORDER BY complaints DESC
 LIMIT 20;
 
-\timing off
-
 -- ============================================================================
 -- ## What changed?
 -- ============================================================================
+-- The Tiger CLI has a single command that reports all of this at once:
+--
+--   tiger db schema "$(scripts/sid fbfd-original)"
+--
+-- It works on fbfd-original, and it is the nicer way to look at a schema. It
+-- does NOT currently work against a fork of a free service -- any read-only
+-- connection to one is refused at connect time, and `tiger db schema` always
+-- connects read-only. So for the fork, we ask in SQL.
 
 -- Column types. created_date and closed_date should no longer say "text".
-\d service_requests
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'service_requests'
+ORDER BY ordinal_position;
 
--- Is it a hypertable now?
-SELECT hypertable_schema, hypertable_name, num_dimensions
-FROM timescaledb_information.hypertables;
+-- Is it a hypertable now, and how is it chunked?
+SELECT h.hypertable_name, h.num_dimensions, count(c.chunk_name) AS chunks
+FROM timescaledb_information.hypertables h
+LEFT JOIN timescaledb_information.chunks c USING (hypertable_name)
+GROUP BY 1, 2;
 
--- How is it chunked?
-SELECT hypertable_name, count(*) AS chunks
-FROM timescaledb_information.chunks
-GROUP BY hypertable_name;
-
--- Continuous aggregates, if any.
+-- Did it build a continuous aggregate?
 SELECT view_name, materialization_hypertable_name, compression_enabled
 FROM timescaledb_information.continuous_aggregates;
 

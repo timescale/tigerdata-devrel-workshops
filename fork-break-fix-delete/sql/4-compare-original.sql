@@ -4,7 +4,7 @@
 --
 -- Run this against fbfd-ORIGINAL:
 --
---   psql "$(scripts/conn fbfd-original)" \
+--   tiger db query "$(scripts/sid fbfd-original)" \
 --        -f sql/4-compare-original.sql
 --
 -- Your agent just did genuinely destructive work — rewrote column types, created
