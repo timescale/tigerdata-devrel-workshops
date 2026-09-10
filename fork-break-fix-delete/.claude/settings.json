@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(tiger service delete:*)",
+      "Bash(tiger service stop:*)",
+      "Bash(tiger service update-password:*)",
+      "Bash(tiger auth logout:*)"
+    ]
+  }
+}

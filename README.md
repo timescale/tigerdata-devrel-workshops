@@ -7,6 +7,7 @@ Hands-on workshops from the Tiger Data Developer Relations team. Each workshop i
 | Workshop | Description | Format | Length |
 |----------|-------------|--------|--------|
 | [iot-sensor-to-insight](./iot-sensor-to-insight) | Build a real-time IoT analytics pipeline on Tiger Cloud — hypertables, columnar compression, continuous aggregates, retention. | Live virtual workshop | 60 min |
+| [fork-break-fix-delete](./fork-break-fix-delete) | Point a coding agent at a database it's allowed to break — Tiger MCP, instant service forks, agent-driven schema surgery, and the guardrails that make it safe. | Live virtual workshop | 60 min |
 
 ## Repo conventions
 

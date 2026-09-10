@@ -1,0 +1,59 @@
+// Devcontainer config for the fork-break-fix-delete workshop.
+// Lives at .devcontainer/fork-break-fix-delete/devcontainer.json — this repo hosts
+// multiple workshops, so each one gets its own subfolder under .devcontainer/.
+// Attendees connect via the deep link in this workshop's README (skips the config picker).
+{
+  "name": "fork-break-fix-delete-workshop",
+
+  // Plain Ubuntu. Everything this workshop needs is a CLI: psql, tiger, and the
+  // coding agents. No app runtime, so no language-specific base image.
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "features": {
+    // Node is here purely because all three coding agents ship as npm globals.
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    }
+
+    // Deliberately NOT here:
+    //   - docker-in-docker: the database is Tiger Cloud, which is remote. Nothing
+    //     runs in a local container. (mqtt-to-dashboard dropped it for the same reason.)
+    //   - ghcr.io/anthropics/devcontainer-features/claude-code: it works fine, but
+    //     we already install two other agents via npm in post-create.sh. One
+    //     mechanism beats two, and it keeps the workshop terminal-only rather than
+    //     splitting attention between the VS Code panel and the CLI.
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // SQL syntax highlighting + a lightweight query runner
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+
+        // Quality-of-life, not required
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": false,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/fork-break-fix-delete/scripts/post-create.sh",
+
+  // No forwardPorts. Tiger Cloud is remote and nothing listens locally.
+  // (Codex's OAuth callback on :1455 is sidestepped by `codex login --device-auth`.)
+
+  // Keep the codespace lean — but note the workshop decompresses a ~125 MB CSV,
+  // so this is not the machine to shrink below the default.
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb"
+  }
+}

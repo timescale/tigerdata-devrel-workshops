@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Resolve a Tiger Cloud service NAME to its service ID.
+#
+#   tiger service fork "$(scripts/sid fbfd-original)" --now --name fbfd-fork
+#   tiger service delete "$(scripts/sid fbfd-fork)" --confirm
+#
+# The Tiger CLI addresses services by a ten-character ID, not by name. Names are
+# display labels. This turns one into the other.
+
+set -euo pipefail
+
+name="${1:-}"
+if [ -z "$name" ]; then
+    echo "usage: scripts/sid <service-name>" >&2
+    exit 64
+fi
+
+id="$(tiger service list -o json | jq -r --arg n "$name" '.[] | select(.name == $n) | .service_id' | head -1)"
+
+if [ -z "$id" ]; then
+    echo "No Tiger Cloud service named '$name'. What you do have:" >&2
+    tiger service list -o json | jq -r '.[] | "  \(.name)  (\(.service_id))"' >&2
+    exit 1
+fi
+
+printf '%s\n' "$id"
