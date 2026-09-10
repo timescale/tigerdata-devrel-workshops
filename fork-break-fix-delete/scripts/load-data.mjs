@@ -36,21 +36,65 @@ if (conn.status !== 0) {
   process.exit(1);
 }
 
-// The connection string says sslmode=require. In libpq that means "encrypt, but
-// don't verify the chain" -- which is what psql does here, because Tiger Cloud's
-// certificate chain doesn't validate against Node's default CA store. Recent
-// node-postgres reads sslmode=require as verify-full instead, so we say what we
-// mean explicitly rather than depending on which interpretation ships.
-// node-postgres lets the connection string's own sslmode win over the ssl option,
-// so drop it and state the intent once, in one place.
+// TLS, and why this is more than one line.
+//
+// Tiger Cloud presents a private, self-signed certificate chain:
+//
+//   leaf   C=USA, O=Timescale Inc, CN=<service>.<project>.tsdb.cloud.timescale.com
+//   root   O=Timescale Inc, CN=ca.timescale.com   (self-signed)
+//
+// That root is not in any public trust store and Tiger does not publish it for
+// download, so verifying the chain is not merely inconvenient, it is impossible.
+// We checked a free service and a paid one and both presented it, despite the
+// strict-SSL docs describing Google/ZeroSSL certificates on paid plans.
+//
+// The connection string the CLI hands out says sslmode=require, which in libpq
+// means "encrypt, don't verify" -- so psql and the Tiger CLI itself are already
+// doing exactly what the fallback below does.
+//
+// Still: verify by default, and fall back to encrypted-but-unverified ONLY when
+// the failure is specifically an unverifiable chain -- loudly, never silently.
+// Any other TLS error is a real error and propagates. If Tiger ever ships
+// publicly-trusted certificates, this starts verifying with no change here.
+//
+// (node-postgres lets the connection string's own sslmode win over the ssl
+// option, so drop it and state the intent in one place.)
 const url = new URL(conn.stdout.trim());
 url.searchParams.delete("sslmode");
 
-const client = new pg.Client({
-  connectionString: url.toString(),
-  ssl: { rejectUnauthorized: false },
-});
-await client.connect();
+const UNVERIFIABLE_CHAIN = new Set([
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+]);
+
+async function connect(verify) {
+  const client = new pg.Client({
+    connectionString: url.toString(),
+    ssl: verify
+      ? { rejectUnauthorized: true, servername: url.hostname }
+      : { rejectUnauthorized: false },
+  });
+  await client.connect();
+  return client;
+}
+
+let client;
+try {
+  client = await connect(true);
+} catch (err) {
+  if (!UNVERIFIABLE_CHAIN.has(err.code)) throw err;
+  console.warn(
+    `  note: ${url.hostname}\n` +
+    `        presents a private Tiger Cloud certificate chain that cannot be\n` +
+    `        verified against the public trust store (${err.code}).\n` +
+    `        Expected today on every Tiger Cloud service. Continuing: the\n` +
+    `        connection is encrypted, but the server is not authenticated --\n` +
+    `        the same guarantee psql gives you with sslmode=require.`
+  );
+  client = await connect(false);
+}
 
 const started = Date.now();
 let bytes = 0;
