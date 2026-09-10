@@ -10,12 +10,12 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 WORKSHOP_DIR="$REPO_ROOT/fork-break-fix-delete"
 
-echo "==> Installing psql and jq"
-# apt directly rather than ghcr.io/devcontainers-contrib/features/postgresql-client,
-# which has failed to resolve during container creation before (community feature
-# registry flake, not something we control).
+echo "==> Installing jq"
+# No postgresql-client. Nothing in this workshop shells out to psql: SQL runs
+# through `tiger db query`, and the one thing it can't do -- stream a local CSV
+# into a COPY -- is handled by scripts/load-data.mjs over the wire protocol.
 sudo apt-get update -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client jq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq jq
 
 echo "==> Installing Tiger CLI"
 # INSTALL_DIR is honoured by the install script. /usr/local/bin is on PATH for every
@@ -31,17 +31,18 @@ tiger config set password_storage pgpass
 echo "==> Installing coding agents (claude, codex, copilot)"
 npm install -g --silent @anthropic-ai/claude-code @openai/codex @github/copilot
 
-echo "==> Decompressing the NYC 311 dataset"
-# The .gz is committed; the .csv is gitignored. -k keeps the archive, -f makes this
-# safe to re-run.
-gunzip -kf "$WORKSHOP_DIR/data/nyc311_sample.csv.gz"
+echo "==> Installing the CSV loader's dependencies"
+# scripts/load-data.mjs needs pg + pg-copy-streams. The dataset itself stays
+# gzipped -- the loader streams it through gunzip, so nothing unpacks 126 MB
+# onto the codespace's disk.
+npm install --prefix "$WORKSHOP_DIR" --silent --no-audit --no-fund
 
 cat <<'BANNER'
 
   ────────────────────────────────────────────────────────────────
    fork-break-fix-delete — container ready
 
-   Installed: psql, jq, tiger, claude, codex, copilot
+   Installed: jq, tiger, claude, codex, copilot
 
    You still need to authenticate. Open
        fork-break-fix-delete/README.md

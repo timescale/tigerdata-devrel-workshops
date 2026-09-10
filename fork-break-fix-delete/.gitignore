@@ -4,3 +4,4 @@ data/*.csv
 # Anything an attendee drops connection details into.
 .env
 *.pgpass
+node_modules/

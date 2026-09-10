@@ -46,6 +46,18 @@ from that moment on the original is off limits.
 
 6. **Do not touch the CSV in `data/`.** It is the source of truth for re-runs.
 
+## How to run SQL here
+
+There is **no psql on this machine**. Use `tiger db query`:
+
+```
+tiger db query "$(scripts/sid <TARGET SERVICE>)" -c "SELECT ..."
+tiger db query "$(scripts/sid <TARGET SERVICE>)" -f some-file.sql
+```
+
+To load the CSV, use `node scripts/load-data.mjs <TARGET SERVICE>` -- `tiger db query`
+cannot stream a local file into a `COPY`, so that script does it over the wire protocol.
+
 ## Two things that will bite you
 
 - `tiger db query` runs a multi-statement call inside one implicit transaction, and

@@ -5,8 +5,9 @@
 {
   "name": "fork-break-fix-delete-workshop",
 
-  // Plain Ubuntu. Everything this workshop needs is a CLI: psql, tiger, and the
-  // coding agents. No app runtime, so no language-specific base image.
+  // Plain Ubuntu. Everything this workshop needs is a CLI: tiger and the coding
+  // agents. No psql -- SQL goes through `tiger db query`, and the CSV loader is
+  // a small Node script. No app runtime, so no language-specific base image.
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
 
   "features": {

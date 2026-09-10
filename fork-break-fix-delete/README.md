@@ -42,9 +42,8 @@ entire workshop — you need two services and you get two.
 
 [**Open in GitHub Codespaces**](https://codespaces.new/timescale/tigerdata-devrel-workshops/tree/mattstratton/fork-break-fix-delete?devcontainer_path=.devcontainer/fork-break-fix-delete/devcontainer.json)
 
-Give it a few minutes on first boot. It installs `psql`, `jq`, the Tiger CLI, and three coding
-agent CLIs, and decompresses a 125 MB dataset. When it's done you'll see a banner in the
-terminal.
+Give it a few minutes on first boot. It installs `jq`, the Tiger CLI, and three coding
+agent CLIs. When it's done you'll see a banner in the terminal.
 
 Then move into the workshop directory and stay there:
 
@@ -177,8 +176,8 @@ scripts/conn    fbfd-original       # the full connection string, password inclu
 scripts/explain fbfd-original -f sql/2-baseline.sql
 ```
 
-`tiger db query` is how you run SQL — it talks to the service directly and doesn't need
-psql installed at all:
+`tiger db query` is how you run SQL. It talks to the service directly, and there is no
+psql in this workshop at all — not in the Codespace, not in any of these commands:
 
 ```bash
 tiger db query "$(scripts/sid fbfd-original)" -c "SELECT count(*) FROM service_requests"
@@ -191,8 +190,10 @@ flattens an EXPLAIN plan so every node sits at the left margin and you can't see
 nested in what. The helper asks for `-o json` instead and unwraps it, which keeps the
 indentation.
 
-We still use `psql` for exactly one thing — the ingest — because loading a local CSV needs
-psql's `\copy`, and `tiger db query` has no way to stream a file from your machine.
+The one thing `tiger db query` can't do is stream a local file into a `COPY`. That's what
+`scripts/load-data.mjs` is for — it does the `COPY ... FROM STDIN` against the wire
+protocol directly, reading the dataset straight out of the `.gz` so nothing unpacks 126 MB
+onto your disk.
 
 > **On a paid service?** It all works. Two differences: forking takes about 2.5 minutes
 > instead of 30 seconds (restore-and-replay rather than copy-on-write), and the baseline
@@ -216,16 +217,18 @@ This is the first thing you'll ask an agent to do. Start it (`claude`, `codex`, 
 > **Prompt 1 — ingest**
 >
 > ```
-> Load the NYC 311 dataset in data/nyc311_sample.csv into the service_requests
-> table on the Tiger Cloud service named fbfd-original. The CSV has a header row
-> and its columns are already in the same order as the table.
+> Load the NYC 311 dataset into the service_requests table on the Tiger Cloud
+> service named fbfd-original. There's a loader at scripts/load-data.mjs that
+> handles the COPY; read it first so you know what it does.
 >
-> Use psql's \copy so the file is read from this machine — tiger db query
-> can't stream a local file. Get the connection string by running
-> scripts/conn fbfd-original; don't ask me for credentials.
+> There is no psql on this machine, so don't reach for it. Use the tiger CLI
+> for anything else you need, and don't ask me for credentials.
 >
 > When you're done, tell me the row count and the earliest and latest created_date.
 > ```
+>
+> If you'd rather just run it: `node scripts/load-data.mjs fbfd-original`. It takes
+> about 15 seconds.
 
 It should come back with 1,000,000 rows spanning January to late April 2024.
 
@@ -265,7 +268,8 @@ of the next.
 | `AGENTS.md` | The guardrail your agent reads. You'll edit it in step 3. | — |
 | `.claude/settings.json` | Permission rules — the fence, as opposed to the sign | — |
 | `scripts/sid` | Service name → service ID | — |
-| `scripts/conn` | Service name → connection string (only needed for the `\copy` ingest) | — |
+| `scripts/conn` | Service name → connection string (used by the loader) | — |
+| `scripts/load-data.mjs` | Streams the gzipped CSV into a service | — |
 | `scripts/explain` | `tiger db query` with EXPLAIN indentation intact | — |
 
 ---
@@ -466,7 +470,7 @@ nothing about this workflow depends on the agent being careful.
 
    `DROP TABLE` comes back the same way. Reads work, writes and DDL don't. This is the one
    to reach for when an agent needs to understand production but has no business changing
-   it — and `tiger db connect --read-only` gives you the same thing as an interactive psql
+   it — and `tiger db connect --read-only` gives you the same thing as an interactive
    session.
 
    One caveat we hit while building this: a **fork of a free service currently refuses

@@ -86,10 +86,11 @@ LIMIT 20;
 -- ============================================================================
 -- ## Optional: prove you cannot index your way out
 -- ============================================================================
--- Do not run this as part of the script — it is supposed to fail. Paste it into
--- psql by hand if you want to see the error yourself:
+-- Not part of the script above — it is supposed to fail. Run it by hand if you
+-- want to see the error yourself:
 --
---   CREATE INDEX ON service_requests ((created_date::timestamptz));
+--   tiger db query "$(scripts/sid fbfd-original)" \
+--     -c "CREATE INDEX ON service_requests ((created_date::timestamptz))"
 --
 --   ERROR:  functions in index expression must be marked IMMUTABLE
 --
