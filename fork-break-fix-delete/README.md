@@ -452,24 +452,22 @@ nothing about this workflow depends on the agent being careful.
 
 1. **The fork itself.** Structural. The agent cannot damage what it isn't connected to.
    Everything else on this list is a refinement of this one idea.
-2. **A read-only connection to anything real.** `scripts/conn fbfd-original --read-only`
-   hands your agent a connection string that the *server* refuses writes on. Not a role you
-   have to remember to grant, not a convention — the connection itself is in read-only mode.
-   Try it:
+2. **A read-only connection to anything real.** `--read-only` is a first-class flag on the
+   CLI, and the *server* is what refuses the writes — not a role you have to remember to
+   grant, not a convention your agent might ignore. Try it:
 
    ```console
-   $ psql "$(scripts/conn fbfd-original --read-only)" -c "SELECT count(*) FROM service_requests;"
+   $ tiger db query "$(scripts/sid fbfd-original)" --read-only -c "SELECT count(*) FROM service_requests"
     1000000
 
-   $ psql "$(scripts/conn fbfd-original --read-only)" -c "CREATE TABLE agent_was_here(x int);"
-   ERROR:  cannot execute CREATE TABLE in a read-only transaction
-
-   $ psql "$(scripts/conn fbfd-original --read-only)" -c "DROP TABLE service_requests;"
-   ERROR:  cannot execute DROP TABLE in a read-only transaction
+   $ tiger db query "$(scripts/sid fbfd-original)" --read-only -c "CREATE TABLE agent_was_here(x int)"
+   Error: ERROR: cannot execute CREATE TABLE in a read-only transaction (SQLSTATE 25006)
    ```
 
-   Reads work. Writes and DDL don't. This is the one to reach for when an agent needs to
-   understand production but has no business changing it.
+   `DROP TABLE` comes back the same way. Reads work, writes and DDL don't. This is the one
+   to reach for when an agent needs to understand production but has no business changing
+   it — and `tiger db connect --read-only` gives you the same thing as an interactive psql
+   session.
 
    One caveat we hit while building this: a **fork of a free service currently refuses
    read-only connections outright** — `FATAL: cannot disable read-only mode`. Read-only
