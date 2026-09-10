@@ -1,7 +1,3 @@
-# Decompressed working copy of the dataset — the .gz is what we commit.
-data/*.csv
-
 # Anything an attendee drops connection details into.
 .env
 *.pgpass
-node_modules/

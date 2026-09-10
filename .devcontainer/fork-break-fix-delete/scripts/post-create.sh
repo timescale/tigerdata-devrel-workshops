@@ -11,9 +11,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 WORKSHOP_DIR="$REPO_ROOT/fork-break-fix-delete"
 
 echo "==> Installing jq"
-# No postgresql-client. Nothing in this workshop shells out to psql: SQL runs
-# through `tiger db query`, and the one thing it can't do -- stream a local CSV
-# into a COPY -- is handled by scripts/load-data.mjs over the wire protocol.
+# No postgresql-client, and no database driver either. Every statement in this
+# workshop, including the data load, goes through `tiger db query`.
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq jq
 
@@ -31,11 +30,9 @@ tiger config set password_storage pgpass
 echo "==> Installing coding agents (claude, codex, copilot)"
 npm install -g --silent @anthropic-ai/claude-code @openai/codex @github/copilot
 
-echo "==> Installing the CSV loader's dependencies"
-# scripts/load-data.mjs needs pg + pg-copy-streams. The dataset itself stays
-# gzipped -- the loader streams it through gunzip, so nothing unpacks 126 MB
-# onto the codespace's disk.
-npm install --prefix "$WORKSHOP_DIR" --silent --no-audit --no-fund
+# Nothing else to install. The dataset ships as gzipped SQL in data/load/ and
+# loads through `tiger db query` -- no database driver, no client library, and
+# nothing unpacked to disk.
 
 cat <<'BANNER'
 

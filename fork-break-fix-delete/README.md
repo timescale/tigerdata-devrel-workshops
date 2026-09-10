@@ -172,8 +172,8 @@ ships three small helpers:
 
 ```bash
 scripts/sid     fbfd-original       # your service's ID
-scripts/conn    fbfd-original       # the full connection string, password included
 scripts/explain fbfd-original -f sql/2-baseline.sql
+scripts/load-data.sh fbfd-original  # loads the dataset
 ```
 
 `tiger db query` is how you run SQL. It talks to the service directly, and there is no
@@ -190,10 +190,20 @@ flattens an EXPLAIN plan so every node sits at the left margin and you can't see
 nested in what. The helper asks for `-o json` instead and unwraps it, which keeps the
 indentation.
 
-The one thing `tiger db query` can't do is stream a local file into a `COPY`. That's what
-`scripts/load-data.mjs` is for — it does the `COPY ... FROM STDIN` against the wire
-protocol directly, reading the dataset straight out of the `.gz` so nothing unpacks 126 MB
-onto your disk.
+**The whole workshop runs on the Tiger CLI and nothing else.** No psql, no database
+driver, no language runtime. If you'd rather work on your own machine than in the
+Codespace, `tiger` and `jq` are the entire dependency list.
+
+That constraint shaped how the data ships. Loading a local file into Postgres would
+normally be `COPY ... FROM STDIN`, where the client streams the rows — and `tiger db query`
+sends a query, it doesn't stream data. So the dataset is ten gzipped files of `INSERT`
+statements in `data/load/`, and `scripts/load-data.sh` pipes each one through
+`gunzip -c | tiger db query`. Nothing is ever unpacked to disk.
+
+It's chunked at 100,000 rows because `tiger db query` sends a file as one query string, and
+all million rows at once is ~146 MB of SQL that a free service answers with
+`ERROR: out of memory`. INSERTs are slower than a `COPY` — about 80 seconds for the full
+million — which is why this is pre-work.
 
 > **On a paid service?** It all works. Two differences: forking takes about 2.5 minutes
 > instead of 30 seconds (restore-and-replay rather than copy-on-write), and the baseline
@@ -218,17 +228,17 @@ This is the first thing you'll ask an agent to do. Start it (`claude`, `codex`, 
 >
 > ```
 > Load the NYC 311 dataset into the service_requests table on the Tiger Cloud
-> service named fbfd-original. There's a loader at scripts/load-data.mjs that
-> handles the COPY; read it first so you know what it does.
+> service named fbfd-original. There's a loader at scripts/load-data.sh —
+> read it first so you know what it does, then run it.
 >
-> There is no psql on this machine, so don't reach for it. Use the tiger CLI
-> for anything else you need, and don't ask me for credentials.
+> There is no psql and no database driver on this machine. Everything goes
+> through the tiger CLI. Don't ask me for credentials.
 >
 > When you're done, tell me the row count and the earliest and latest created_date.
 > ```
 >
-> If you'd rather just run it: `node scripts/load-data.mjs fbfd-original`. It takes
-> about 15 seconds.
+> If you'd rather just run it yourself: `scripts/load-data.sh fbfd-original`. Takes
+> about 80 seconds.
 
 It should come back with 1,000,000 rows spanning January to late April 2024.
 
@@ -268,8 +278,7 @@ of the next.
 | `AGENTS.md` | The guardrail your agent reads. You'll edit it in step 3. | — |
 | `.claude/settings.json` | Permission rules — the fence, as opposed to the sign | — |
 | `scripts/sid` | Service name → service ID | — |
-| `scripts/conn` | Service name → connection string (used by the loader) | — |
-| `scripts/load-data.mjs` | Streams the gzipped CSV into a service | — |
+| `scripts/load-data.sh` | Loads `data/load/*.sql.gz` into a service | — |
 | `scripts/explain` | `tiger db query` with EXPLAIN indentation intact | — |
 
 ---
@@ -500,7 +509,7 @@ error — "it didn't work" is hard to help with and we're on a 60-minute clock.
 You passed a service *name* where the CLI wanted a service *ID*. Names are display labels;
 `tiger db connection-string`, `tiger service get`, `tiger service fork` and
 `tiger service delete` all take the ten-character ID. Use `scripts/sid <name>` to get an
-ID, `scripts/conn <name>` for a connection string, or read them off `tiger service list`.
+ID, or read them off `tiger service list`.
 
 **`tiger` commands fail with a keyring or credential error**
 No system keyring exists inside a container. The setup script runs
@@ -596,6 +605,6 @@ tiger service delete <service-id> --confirm
 
 ## Regenerating the dataset
 
-`data/nyc311_sample.csv.gz` is committed, so you don't need to. If you want a different
-slice, `scripts/make-dataset.sh` documents how it was built from
+`data/load/*.sql.gz` is committed, so you don't need to. If you want a different slice,
+`scripts/make-dataset.sh` rebuilds it (`ROWS=250000 scripts/make-dataset.sh`) from
 [NYC Open Data](https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9).

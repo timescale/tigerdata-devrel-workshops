@@ -17,17 +17,16 @@ from that moment on the original is off limits.
 
 ## Rules
 
-1. **Only connect to the service named on the `TARGET SERVICE` line above.**
-   Get its connection string with:
+1. **Only touch the service named on the `TARGET SERVICE` line above.**
+   Resolve its ID with:
    ```
-   scripts/conn <TARGET SERVICE>
+   scripts/sid <TARGET SERVICE>
    ```
    That helper exists because the Tiger CLI addresses services by their
-   ten-character service ID, not by name — it resolves the name for you and calls
-   `tiger db connection-string <id> --with-password`.
+   ten-character service ID, not by name.
 
-   Never connect to any other service in this project. If a task seems to require
-   it, stop and ask.
+   Never query any other service in this project. If a task seems to require it,
+   stop and ask.
 
 2. **Never run `tiger service delete`, `tiger service stop`, or
    `tiger service update-password`.** Service lifecycle is the human's job.
@@ -55,8 +54,10 @@ tiger db query "$(scripts/sid <TARGET SERVICE>)" -c "SELECT ..."
 tiger db query "$(scripts/sid <TARGET SERVICE>)" -f some-file.sql
 ```
 
-To load the CSV, use `node scripts/load-data.mjs <TARGET SERVICE>` -- `tiger db query`
-cannot stream a local file into a `COPY`, so that script does it over the wire protocol.
+To load the dataset, use `scripts/load-data.sh <TARGET SERVICE>`. It pipes ten gzipped
+files of `INSERT` statements from `data/load/` through `tiger db query`. Don't try to
+`COPY` from a local file -- `tiger db query` can't stream one, and sending all million
+rows as a single statement runs the service out of memory.
 
 ## Two things that will bite you
 
