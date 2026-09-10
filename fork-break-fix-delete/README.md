@@ -147,24 +147,37 @@ tiger service create --name fbfd-original --cpu shared --memory shared
 live in `us-east-1` only, and they fork in about 30 seconds, which is the entire reason
 this workshop fits in an hour.
 
-Note the **Service ID** in the output — something like `kg6vya76ff`. That, not the name, is
-what the Tiger CLI actually addresses services by:
+Look at the **Service ID** in the output. It's ten characters, and it is unique to you —
+this is not something you can copy out of these docs. *That*, not the name, is what the
+Tiger CLI addresses services by. Names are display labels.
 
-```bash
-tiger db connection-string fbfd-original     # Error: no entries with that projectID:serviceID...
-tiger db connection-string kg6vya76ff        # works
+The transcript below is illustrative, not copy-pasteable — substitute your own ID:
+
+```console
+$ tiger db connection-string fbfd-original
+Error: no entries with that projectID:serviceID combination could be found
+
+$ tiger db connection-string <your-service-id>
+postgresql://tsdbadmin:...@<your-service-id>.<project>.tsdb.cloud.timescale.com:36821/tsdb?sslmode=require
 ```
 
-Rather than have you paste that ID into fifteen commands, this workshop ships two small
-helpers that look the ID up from the name:
+Run these two for real — the first prints your ID, the second proves it works:
 
 ```bash
-scripts/sid  fbfd-original          # -> kg6vya76ff
-scripts/conn fbfd-original          # -> the full connection string, password included
+tiger service list                                   # find your Service ID
+tiger db connection-string "$(scripts/sid fbfd-original)"
+```
+
+Rather than have you paste ten random characters into fifteen commands, this workshop
+ships two small helpers that do that name-to-ID lookup for you:
+
+```bash
+scripts/sid  fbfd-original          # your service's ID
+scripts/conn fbfd-original          # the full connection string, password included
 scripts/conn fbfd-original --read-only
 ```
 
-Everything below uses them. They're eight lines of `jq` each — read them if you want.
+Everything below uses them. They're a few lines of `jq` each — read them if you want.
 
 > **On a paid service?** It all works. Two differences: forking takes about 2.5 minutes
 > instead of 30 seconds (restore-and-replay rather than copy-on-write), and the baseline
