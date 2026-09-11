@@ -3,10 +3,20 @@
 For the DevRel team and anyone building or maintaining a Tiger Data workshop. If you're
 here to *take* a workshop, the [README](./README.md) is what you want.
 
-## One workshop, one repo
+## Start from the template
 
-Each workshop is its own repo under the `timescale` org, named `<topic>-workshop`. Add it
-to the list in the README once it's ready for people to find.
+Use **[timescale/workshop-template](https://github.com/timescale/workshop-template)** →
+*Use this template* → *Create a new repository*. Name it `<topic>-workshop` under the
+`timescale` org.
+
+You get the devcontainer, README skeleton, LICENSE, editor settings and a builder-facing
+`CLAUDE.md` already in place. A one-shot workflow rewrites the Codespaces badge to point
+at your new repo and then deletes itself, so the badge is never silently wrong.
+
+Then read that repo's `CLAUDE.md` — it carries the conventions and the gotchas, and is
+the more detailed version of everything below.
+
+Add your workshop to the list in this repo's README once it's ready for people to find.
 
 This repo used to hold all of them in subfolders. That broke down for a practical reason
 worth knowing: a devcontainer nested at `.devcontainer/<workshop-name>/` needs a
